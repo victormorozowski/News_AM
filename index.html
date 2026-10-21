@@ -40,7 +40,8 @@
     <script>
         async function carregarNoticias() {
             try {
-                const resposta = await fetch('noticias_atualizadas.json?t=' + new Date().getTime());
+                // Caminho absoluto corrigido para o repositório News_AM
+                const resposta = await fetch('/News_AM/noticias_atualizadas.json?t=' + new Date().getTime());
                 if (!resposta.ok) throw new Error("Arquivo de notícias não encontrado.");
                 
                 const dados = await resposta.json();
@@ -50,7 +51,7 @@
                 let totalTemas = Object.keys(dados).length;
                 document.getElementById('status-atualizacao').innerText = `${totalTemas} parâmetros monitorados`;
 
-                for [tema, noticias] of Object.entries(dados)) {
+                for (let [tema, noticias] of Object.entries(dados)) {
                     let secao = document.createElement('div');
                     secao.className = 'bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg';
 
@@ -97,8 +98,8 @@
             } catch (erro) {
                 document.getElementById('container-noticias').innerHTML = `
                     <div class="bg-red-950/30 border border-red-900 text-red-300 p-4 rounded-xl text-center">
-                        <p class="font-semibold">Ainda não há dados gerados ou o arquivo JSON não foi localizado.</p>
-                        <p class="text-xs mt-1 text-red-400">Execute o workflow na aba Actions para gerar o primeiro relatório.</p>
+                        <p class="font-semibold">Erro ao carregar o painel de notícias.</p>
+                        <p class="text-xs mt-1 text-red-400">Certifique-se de que o arquivo JSON foi gerado na aba Actions do GitHub.</p>
                     </div>
                 `;
             }
