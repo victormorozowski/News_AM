@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Inteligência - Notícias Amazonas</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+    <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-xl font-bold text-cyan-400">Painel de Monitoramento - Amazonas</h1>
+                <p class="text-xs text-slate-400">Atualização diária automatizada via Inteligência Artificial</p>
+            </div>
+            <div id="status-atualizacao" class="text-xs bg-slate-700 px-3 py-1.5 rounded-full text-slate-300">
+                Carregando dados...
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <div id="container-noticias" class="space-y-6">
+            <!-- Os cards de notícias serão injetados aqui automaticamente -->
+            <div class="text-center py-20 text-slate-400">
+                <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-cyan-500 border-t-transparent mb-4"></div>
+                <p>Buscando relatórios recentes...</p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-slate-800 border-t border-slate-700 mt-12 py-6 text-center text-xs text-slate-500">
+        Painel restrito de monitoramento de fontes públicas — Últimas 24 horas.
+    </footer>
+
+    <script>
+        async function carregarNoticias() {
+            try {
+                const resposta = await fetch('noticias_atualizadas.json?t=' + new Date().getTime());
+                if (!resposta.ok) throw new Error("Arquivo de notícias não encontrado.");
+                
+                const dados = await resposta.json();
+                const container = document.getElementById('container-noticias');
+                container.innerHTML = '';
+
+                let totalTemas = Object.keys(dados).length;
+                document.getElementById('status-atualizacao').innerText = `${totalTemas} parâmetros monitorados`;
+
+                for [tema, noticias] of Object.entries(dados)) {
+                    let secao = document.createElement('div');
+                    secao.className = 'bg-slate-800 border border-slate-700 rounded-xl p-6 shadow-lg';
+
+                    let cabecalhoTema = document.createElement('h2');
+                    cabecalhoTema.className = 'text-lg font-semibold text-cyan-300 mb-4 pb-2 border-b border-slate-700 flex justify-between items-center';
+                    cabecalhoTema.innerHTML = `<span>${tema}</span>`;
+                    secao.appendChild(cabecalhoTema);
+
+                    let conteudoDiv = document.createElement('div');
+
+                    if (typeof noticias === 'string') {
+                        // Caso seja a mensagem de "Sem atualizações"
+                        conteudoDiv.innerHTML = `<p class="text-sm text-slate-400 italic bg-slate-900/50 p-3 rounded-lg border border-slate-800">${noticias}</p>`;
+                    } else if (Array.isArray(noticias)) {
+                        let listaCards = document.createElement('div');
+                        listaCards.className = 'grid grid-cols-1 md:grid-cols-2 gap-4';
+
+                        noticias.forEach(item => {
+                            let card = document.createElement('div');
+                            card.className = 'bg-slate-900/60 border border-slate-700/60 rounded-lg p-4 flex flex-col justify-between hover:border-cyan-500/50 transition-all';
+                            
+                            card.innerHTML = `
+                                <div>
+                                    <div class="flex justify-between items-start gap-2 mb-2">
+                                        <span class="text-xs font-medium text-cyan-400 bg-cyan-950/50 px-2 py-0.5 rounded border border-cyan-800/50">${item.fonte}</span>
+                                        <span class="text-xs text-slate-500">${item.data}</span>
+                                    </div>
+                                    <h3 class="text-sm font-semibold text-slate-100 mb-2">${item.titulo}</h3>
+                                    <p class="text-xs text-slate-300 mb-4 leading-relaxed">${item.resumo}</p>
+                                </div>
+                                <a href="${item.link}" target="_blank" class="inline-flex items-center text-xs font-medium text-cyan-400 hover:text-cyan-300 transition-colors mt-2">
+                                    Ler matéria completa &rarr;
+                                </a>
+                            `;
+                            listaCards.appendChild(card);
+                        });
+                        conteudoDiv.appendChild(listaCards);
+                    }
+
+                    secao.appendChild(conteudoDiv);
+                    container.appendChild(secao);
+                }
+
+            } catch (erro) {
+                document.getElementById('container-noticias').innerHTML = `
+                    <div class="bg-red-950/30 border border-red-900 text-red-300 p-4 rounded-xl text-center">
+                        <p class="font-semibold">Ainda não há dados gerados ou o arquivo JSON não foi localizado.</p>
+                        <p class="text-xs mt-1 text-red-400">Execute o workflow na aba Actions para gerar o primeiro relatório.</p>
+                    </div>
+                `;
+            }
+        }
+
+        carregarNoticias();
+    </script>
+</body>
+</html>
