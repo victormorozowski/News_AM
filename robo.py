@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+from email.utils import parsedate_to_datetime
 from gnews import GNews
 
 google_news = GNews(language='pt', country='BR', period='1d', max_results=10)
@@ -26,14 +27,27 @@ TEMAS_BUSCA = [
     "Órgãos Federais atuantes no Amazonas",
 ]
 
-def traduzir_data_pt(data_str):
-    """Traduz rigorosamente qualquer termo de data do inglês para o português do Brasil."""
+def formatar_data_brasil(data_str):
+    """Converte qualquer data (GMT ou texto) para o padrão brasileiro legível com fuso."""
     if not data_str:
         return "Data não informada"
     
-    texto = str(data_str).lower()
+    str_val = str(data_str).strip()
     
-    # Substituições abrangentes
+    # Tenta converter formato RSS/GMT (ex: Wed, 21 Oct 2026 20:53:55 GMT)
+    try:
+        dt_utc = parsedate_to_datetime(str_val)
+        if dt_utc:
+            # Subtrai 4 horas para converter UTC para o horário padrão de Manaus (GMT-4)
+            # Ou se preferir exibir em GMT-3 (Brasília), ajuste aqui. Vamos usar GMT-4 (Manaus/Amazonas) como base operacional do painel.
+            from datetime import timedelta
+            dt_local = dt_utc - timedelta(hours=4)
+            return dt_local.strftime('%d/%m/%Y às %H:%M (GMT-4 Manaus)')
+    except:
+        pass
+    
+    # Se não for formato GMT, traduz termos relativos comuns
+    texto = str_val.lower()
     substituicoes = [
         ("hours ago", "horas atrás"),
         ("hour ago", "hora atrás"),
@@ -63,18 +77,27 @@ def traduzir_data_pt(data_str):
     
     return texto.strip().capitalize()
 
-def converter_data(data_str):
+def converter_data_para_ordenacao(data_str):
+    """Converte para datetime para garantir a ordenação rigorosa da mais nova para a mais antiga."""
     if not data_str:
         return datetime.min
     try:
-        for fmt in ('%a, %d %b %Y %H:%M:%S %Z', '%Y-%m-%dT%H:%M:%SZ', '%d/%m/%Y %H:%M'):
+        dt_utc = parsedate_to_datetime(str(data_str).strip())
+        if dt_utc:
+            return dt_utc
+    except:
+        pass
+    
+    try:
+        for fmt in ('%Y-%m-%dT%H:%M:%SZ', '%d/%m/%Y %H:%M'):
             try:
                 return datetime.strptime(str(data_str).strip(), fmt)
             except ValueError:
                 continue
-        return datetime.min
     except:
-        return datetime.min
+        pass
+        
+    return datetime.min
 
 def buscar_noticias():
     data_execucao = datetime.now().strftime('%d/%m/%Y %H:%M')
@@ -119,8 +142,8 @@ def buscar_noticias():
                     titulo = artigo.get('title', 'Sem Título')
                     fonte = artigo.get('publisher', {}).get('title', 'Fonte Desconhecida')
                     
-                    data_crua = artigo.get('published date', 'Data não informada')
-                    data_pub = traduzir_data_pt(data_crua)
+                    data_crua = artigo.get('published date', '')
+                    data_pub = formatar_data_brasil(data_crua)
                     
                     descricao = artigo.get('description', '')
                     resumo = descricao if descricao else f"Notícia referente a {tema}."
@@ -129,12 +152,13 @@ def buscar_noticias():
                         'titulo': titulo,
                         'resumo': resumo,
                         'data': data_pub,
+                        'data_original': str(data_crua), # Guardado para ordenação exata
                         'fonte': fonte,
                         'link': link
                     })
 
             if noticias_tema and isinstance(noticias_tema, list):
-                noticias_tema.sort(key=lambda x: converter_data(x.get('data')), reverse=True)
+                noticias_tema.sort(key=lambda x: converter_data_para_ordenacao(x.get('data_original')), reverse=True)
                 relatorio_geral[tema] = noticias_tema
             else:
                 relatorio_geral[tema] = "Sem atualizações relevantes nas últimas 24h."
@@ -162,7 +186,7 @@ def buscar_noticias():
     with open('historico_geral.json', 'w', encoding='utf-8') as f:
         json.dump(historico, f, ensure_ascii=False, indent=4)
 
-    print("\nVarredura concluída, datas traduzidas e ordenadas com sucesso!")
+    print("\nVarredura concluída, datas convertidas para o padrão brasileiro com fuso e ordenadas com sucesso!")
 
 if __name__ == '__main__':
     buscar_noticias()
