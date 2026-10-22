@@ -24,9 +24,10 @@
                     <h1 class="text-base font-bold tracking-wide text-slate-100 flex items-center gap-2">
                         Painel de Monitoramento <span class="text-xs font-semibold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">AMAZONAS</span>
                     </h1>
-                    <p class="text-[11px] text-slate-400 flex items-center gap-2">
+                    <p class="text-[11px] text-slate-400 flex flex-wrap items-center gap-2">
                         <span>Inteligência Operacional</span> • 
-                        <span id="relogio-local" class="text-slate-300 font-mono">Carregando data e local...</span>
+                        <span id="relogio-manaus" class="text-slate-300 font-mono">Manaus: Carregando...</span> | 
+                        <span id="relogio-brasilia" class="text-cyan-300 font-mono">Brasília: Carregando...</span>
                     </p>
                 </div>
             </div>
@@ -110,20 +111,26 @@
         let temaSelecionado = 'TODOS';
         let termoBusca = '';
 
-        function iniciarRelogioELocalizacao() {
+        // Relógios simultâneos para Manaus e Brasília
+        function iniciarRelogios() {
             function atualizar() {
                 const agora = new Date();
-                const dataFormatada = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Manaus' });
-                const horaFormatada = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus' });
                 
-                document.getElementById('relogio-local').innerText = `${dataFormatada} • ${horaFormatada} (Manaus, AM)`;
+                const dataManaus = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Manaus' });
+                const horaManaus = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus' });
+                
+                const dataBrasilia = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                const horaBrasilia = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                
+                document.getElementById('relogio-manaus').innerText = `Manaus: ${dataManaus} • ${horaManaus}`;
+                document.getElementById('relogio-brasilia').innerText = `Brasília: ${dataBrasilia} • ${horaBrasilia}`;
             }
             atualizar();
             setInterval(atualizar, 1000);
         }
 
         async function inicializarPainel() {
-            iniciarRelogioELocalizacao();
+            iniciarRelogios();
             try {
                 const respDiario = await fetch('/News_AM/noticias_atualizadas.json?t=' + new Date().getTime());
                 if (respDiario.ok) {
