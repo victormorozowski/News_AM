@@ -3,7 +3,7 @@ import json
 import os
 from gnews import GNews
 
-# Inicializa o buscador do Google News
+# Força o buscador do Google News estritamente em Português do Brasil
 google_news = GNews(language='pt', country='BR', period='1d', max_results=10)
 
 TEMAS_BUSCA = [
@@ -27,18 +27,37 @@ TEMAS_BUSCA = [
     "Órgãos Federais atuantes no Amazonas",
 ]
 
+def traduzir_data_pt(data_str):
+    """Traduz termos comuns de datas do inglês para o português do Brasil."""
+    if not data_str:
+        return "Data não informada"
+    
+    texto = str(data_str).lower()
+    
+    # Substituições comuns de termos em inglês do RSS do Google News para PT-BR
+    texto = texto.replace("hours ago", "horas atrás")
+    texto = texto.replace("hour ago", "hora atrás")
+    texto = texto.replace("minutes ago", "minutos atrás")
+    texto = texto.replace("minute ago", "minuto atrás")
+    texto = texto.replace("days ago", "dias atrás")
+    texto = texto.replace("day ago", "dia atrás")
+    texto = texto.replace("weeks ago", "semanas atrás")
+    texto = texto.replace("week ago", "semana atrás")
+    texto = texto.replace("months ago", "meses atrás")
+    texto = texto.replace("month ago", "mês atrás")
+    
+    return texto.strip().capitalize()
+
 def converter_data(data_str):
-    """Converte a string de data do Google News para um objeto datetime ordenável."""
+    """Converte a string de data para objeto datetime para ordenação rigorosa."""
     if not data_str:
         return datetime.min
     try:
-        # Formatos comuns retornados pelo feed RSS do Google News
         for fmt in ('%a, %d %b %Y %H:%M:%S %Z', '%Y-%m-%dT%H:%M:%SZ', '%d/%m/%Y %H:%M'):
             try:
-                return datetime.strptime(data_str.strip(), fmt)
+                return datetime.strptime(str(data_str).strip(), fmt)
             except ValueError:
                 continue
-        # Se for string genérica, tenta parsear os primeiros caracteres se possível
         return datetime.min
     except:
         return datetime.min
@@ -86,7 +105,11 @@ def buscar_noticias():
 
                     titulo = artigo.get('title', 'Sem Título')
                     fonte = artigo.get('publisher', {}).get('title', 'Fonte Desconhecida')
-                    data_pub = artigo.get('published date', 'Data não informada')
+                    
+                    # Aplica a tradução da data para Português do Brasil
+                    data_crua = artigo.get('published date', 'Data não informada')
+                    data_pub = traduzir_data_pt(data_crua)
+                    
                     descricao = artigo.get('description', '')
                     resumo = descricao if descricao else f"Notícia referente a {tema}."
 
@@ -98,7 +121,7 @@ def buscar_noticias():
                         'link': link
                     })
 
-            # Ordena rigorosamente da mais nova para a mais antiga dentro do tema
+            # Ordena rigorosamente da mais nova para a mais antiga
             if noticias_tema and isinstance(noticias_tema, list):
                 noticias_tema.sort(key=lambda x: converter_data(x.get('data')), reverse=True)
                 relatorio_geral[tema] = noticias_tema
@@ -130,7 +153,7 @@ def buscar_noticias():
     with open('historico_geral.json', 'w', encoding='utf-8') as f:
         json.dump(historico, f, ensure_ascii=False, indent=4)
 
-    print("\nVarredura concluída, acumulada e ordenada com sucesso!")
+    print("\nVarredura concluída, traduzida para PT-BR e ordenada com sucesso!")
 
 if __name__ == '__main__':
     buscar_noticias()
