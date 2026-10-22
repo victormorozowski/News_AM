@@ -1,11 +1,12 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 import json
+import os
 from gnews import GNews
 
 # Inicializa o buscador do Google News (focado no Brasil e em Português)
-google_news = GNews(language='pt', country='BR', period='1d', max_results=5)
+google_news = GNews(language='pt', country='BR', period='1d', max_results=8)
 
-# Lista oficial com os 19 parâmetros solicitados
+# Lista oficial com os 18 parâmetros solicitados
 TEMAS_BUSCA = [
     "Superintendência da Polícia Federal no Amazonas",
     "Superintendente da Polícia Federal no Amazonas",
@@ -27,11 +28,15 @@ TEMAS_BUSCA = [
     "Órgãos Federais atuantes no Amazonas",
 ]
 
+
 def buscar_noticias():
   relatorio_geral = {}
   data_execucao = datetime.now().strftime('%d/%m/%Y %H:%M')
+  data_hoje = datetime.now().strftime('%Y-%m-%d')
 
   print(f'Iniciando varredura de notícias - {data_execucao}\n' + '=' * 50)
+
+  links_processados = set()
 
   for tema in TEMAS_BUSCA:
     print(f'Pesquisando: {tema}...')
@@ -41,9 +46,15 @@ def buscar_noticias():
 
       if artigos:
         for artigo in artigos:
+          link = artigo.get('url', '#')
+
+          # Evita duplicatas globais (se a mesma notícia aparecer em temas diferentes)
+          if link in links_processados:
+            continue
+          links_processados.add(link)
+
           titulo = artigo.get('title', 'Sem Título')
           fonte = artigo.get('publisher', {}).get('title', 'Fonte Desconhecida')
-          link = artigo.get('url', '#')
           data_pub = artigo.get('published date', 'Data não informada')
           descricao = artigo.get('description', '')
           resumo = descricao if descricao else f'Notícia referente a {tema}.'
@@ -65,10 +76,30 @@ def buscar_noticias():
       print(f'Erro ao buscar o tema "{tema}": {e}')
       relatorio_geral[tema] = 'Sem atualizações relevantes nas últimas 24h.'
 
+  # 1. Salva o arquivo padrão do dia (usado pelo painel principal)
   with open('noticias_atualizadas.json', 'w', encoding='utf-8') as f:
     json.dump(relatorio_geral, f, ensure_ascii=False, indent=4)
 
-  print('\nVarredura concluída! Dados salvos em notícias_atualizadas.json.')
+  # 2. Atualiza o banco de dados histórico (historico_geral.json)
+  historico = {}
+  if os.path.exists('historico_geral.json'):
+    try:
+      with open('historico_geral.json', 'r', encoding='utf-8') as f:
+        historico = json.load(f)
+    except:
+      historico = {}
+
+  # Adiciona ou substitui o dia de hoje no histórico geral
+  historico[data_hoje] = relatorio_geral
+
+  with open('historico_geral.json', 'w', encoding='utf-8') as f:
+    json.dump(historico, f, ensure_ascii=False, indent=4)
+
+  print(
+      '\nVarredura concluída! Dados salvos em notícias_atualizadas.json e'
+      ' historico_geral.json.'
+  )
+
 
 if __name__ == '__main__':
   buscar_noticias()
