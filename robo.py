@@ -3,7 +3,6 @@ import json
 import os
 from gnews import GNews
 
-# Força o buscador do Google News estritamente em Português do Brasil com limite máximo de resultados por tema
 google_news = GNews(language='pt', country='BR', period='1d', max_results=10)
 
 TEMAS_BUSCA = [
@@ -28,27 +27,43 @@ TEMAS_BUSCA = [
 ]
 
 def traduzir_data_pt(data_str):
-    """Traduz termos comuns de datas do inglês para o português do Brasil."""
+    """Traduz rigorosamente qualquer termo de data do inglês para o português do Brasil."""
     if not data_str:
         return "Data não informada"
     
     texto = str(data_str).lower()
     
-    texto = texto.replace("hours ago", "horas atrás")
-    texto = texto.replace("hour ago", "hora atrás")
-    texto = texto.replace("minutes ago", "minutos atrás")
-    texto = texto.replace("minute ago", "minuto atrás")
-    texto = texto.replace("days ago", "dias atrás")
-    texto = texto.replace("day ago", "dia atrás")
-    texto = texto.replace("weeks ago", "semanas atrás")
-    texto = texto.replace("week ago", "semana atrás")
-    texto = texto.replace("months ago", "meses atrás")
-    texto = texto.replace("month ago", "mês atrás")
+    # Substituições abrangentes
+    substituicoes = [
+        ("hours ago", "horas atrás"),
+        ("hour ago", "hora atrás"),
+        ("hours", "horas"),
+        ("hour", "hora"),
+        ("minutes ago", "minutos atrás"),
+        ("minute ago", "minuto atrás"),
+        ("minutes", "minutos"),
+        ("minute", "minuto"),
+        ("days ago", "dias atrás"),
+        ("day ago", "dia atrás"),
+        ("days", "dias"),
+        ("day", "dia"),
+        ("weeks ago", "semanas atrás"),
+        ("week ago", "semana atrás"),
+        ("weeks", "semanas"),
+        ("week", "semana"),
+        ("months ago", "meses atrás"),
+        ("month ago", "mês atrás"),
+        ("ago", "atrás"),
+        ("yesterday", "ontem"),
+        ("today", "hoje")
+    ]
+    
+    for ing, pt in substituicoes:
+        texto = texto.replace(ing, pt)
     
     return texto.strip().capitalize()
 
 def converter_data(data_str):
-    """Converte a string de data para objeto datetime para ordenação rigorosa."""
     if not data_str:
         return datetime.min
     try:
@@ -67,7 +82,6 @@ def buscar_noticias():
 
     print(f"Iniciando varredura de notícias - {data_execucao}\n" + "=" * 50)
 
-    # Carrega dados anteriores do dia para acumular sem apagar o que já foi buscado
     dados_existentes_hoje = {}
     if os.path.exists('noticias_atualizadas.json'):
         try:
@@ -119,7 +133,6 @@ def buscar_noticias():
                         'link': link
                     })
 
-            # Ordena rigorosamente da mais nova para a mais antiga
             if noticias_tema and isinstance(noticias_tema, list):
                 noticias_tema.sort(key=lambda x: converter_data(x.get('data')), reverse=True)
                 relatorio_geral[tema] = noticias_tema
@@ -133,11 +146,9 @@ def buscar_noticias():
             else:
                 relatorio_geral[tema] = "Sem atualizações relevantes nas últimas 24h."
 
-    # Salva o arquivo principal
     with open('noticias_atualizadas.json', 'w', encoding='utf-8') as f:
         json.dump(relatorio_geral, f, ensure_ascii=False, indent=4)
 
-    # Atualiza o histórico geral
     historico = {}
     if os.path.exists('historico_geral.json'):
         try:
@@ -151,7 +162,7 @@ def buscar_noticias():
     with open('historico_geral.json', 'w', encoding='utf-8') as f:
         json.dump(historico, f, ensure_ascii=False, indent=4)
 
-    print("\nVarredura concluída, traduzida para PT-BR e ordenada com sucesso!")
+    print("\nVarredura concluída, datas traduzidas e ordenadas com sucesso!")
 
 if __name__ == '__main__':
     buscar_noticias()
