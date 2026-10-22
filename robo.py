@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 from email.utils import parsedate_to_datetime
@@ -28,48 +28,31 @@ TEMAS_BUSCA = [
 ]
 
 def formatar_data_brasil(data_str):
-    """Converte qualquer data (GMT ou texto) para o padrão brasileiro legível com fuso."""
     if not data_str:
         return "Data não informada"
     
     str_val = str(data_str).strip()
     
-    # Tenta converter formato RSS/GMT (ex: Wed, 21 Oct 2026 20:53:55 GMT)
     try:
         dt_utc = parsedate_to_datetime(str_val)
         if dt_utc:
-            # Subtrai 4 horas para converter UTC para o horário padrão de Manaus (GMT-4)
-            # Ou se preferir exibir em GMT-3 (Brasília), ajuste aqui. Vamos usar GMT-4 (Manaus/Amazonas) como base operacional do painel.
-            from datetime import timedelta
             dt_local = dt_utc - timedelta(hours=4)
             return dt_local.strftime('%d/%m/%Y às %H:%M (GMT-4 Manaus)')
     except:
         pass
     
-    # Se não for formato GMT, traduz termos relativos comuns
     texto = str_val.lower()
     substituicoes = [
-        ("hours ago", "horas atrás"),
-        ("hour ago", "hora atrás"),
-        ("hours", "horas"),
-        ("hour", "hora"),
-        ("minutes ago", "minutos atrás"),
-        ("minute ago", "minuto atrás"),
-        ("minutes", "minutos"),
-        ("minute", "minuto"),
-        ("days ago", "dias atrás"),
-        ("day ago", "dia atrás"),
-        ("days", "dias"),
-        ("day", "dia"),
-        ("weeks ago", "semanas atrás"),
-        ("week ago", "semana atrás"),
-        ("weeks", "semanas"),
-        ("week", "semana"),
-        ("months ago", "meses atrás"),
-        ("month ago", "mês atrás"),
-        ("ago", "atrás"),
-        ("yesterday", "ontem"),
-        ("today", "hoje")
+        ("hours ago", "horas atrás"), ("hour ago", "hora atrás"),
+        ("hours", "horas"), ("hour", "hora"),
+        ("minutes ago", "minutos atrás"), ("minute ago", "minuto atrás"),
+        ("minutes", "minutos"), ("minute", "minuto"),
+        ("days ago", "dias atrás"), ("day ago", "dia atrás"),
+        ("days", "dias"), ("day", "dia"),
+        ("weeks ago", "semanas atrás"), ("week ago", "semana atrás"),
+        ("weeks", "semanas"), ("week", "semana"),
+        ("months ago", "meses atrás"), ("month ago", "mês atrás"),
+        ("ago", "atrás"), ("yesterday", "ontem"), ("today", "hoje")
     ]
     
     for ing, pt in substituicoes:
@@ -78,7 +61,6 @@ def formatar_data_brasil(data_str):
     return texto.strip().capitalize()
 
 def converter_data_para_ordenacao(data_str):
-    """Converte para datetime para garantir a ordenação rigorosa da mais nova para a mais antiga."""
     if not data_str:
         return datetime.min
     try:
@@ -152,7 +134,7 @@ def buscar_noticias():
                         'titulo': titulo,
                         'resumo': resumo,
                         'data': data_pub,
-                        'data_original': str(data_crua), # Guardado para ordenação exata
+                        'data_original': str(data_crua),
                         'fonte': fonte,
                         'link': link
                     })
@@ -186,7 +168,7 @@ def buscar_noticias():
     with open('historico_geral.json', 'w', encoding='utf-8') as f:
         json.dump(historico, f, ensure_ascii=False, indent=4)
 
-    print("\nVarredura concluída, datas convertidas para o padrão brasileiro com fuso e ordenadas com sucesso!")
+    print("\nVarredura concluída com sucesso!")
 
 if __name__ == '__main__':
     buscar_noticias()
