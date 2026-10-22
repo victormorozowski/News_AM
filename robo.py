@@ -3,7 +3,7 @@ import json
 import os
 from gnews import GNews
 
-# Força o buscador do Google News estritamente em Português do Brasil
+# Força o buscador do Google News estritamente em Português do Brasil com limite máximo de resultados por tema
 google_news = GNews(language='pt', country='BR', period='1d', max_results=10)
 
 TEMAS_BUSCA = [
@@ -34,7 +34,6 @@ def traduzir_data_pt(data_str):
     
     texto = str(data_str).lower()
     
-    # Substituições comuns de termos em inglês do RSS do Google News para PT-BR
     texto = texto.replace("hours ago", "horas atrás")
     texto = texto.replace("hour ago", "hora atrás")
     texto = texto.replace("minutes ago", "minutos atrás")
@@ -68,7 +67,7 @@ def buscar_noticias():
 
     print(f"Iniciando varredura de notícias - {data_execucao}\n" + "=" * 50)
 
-    # Carrega dados anteriores do dia para acumular
+    # Carrega dados anteriores do dia para acumular sem apagar o que já foi buscado
     dados_existentes_hoje = {}
     if os.path.exists('noticias_atualizadas.json'):
         try:
@@ -106,7 +105,6 @@ def buscar_noticias():
                     titulo = artigo.get('title', 'Sem Título')
                     fonte = artigo.get('publisher', {}).get('title', 'Fonte Desconhecida')
                     
-                    # Aplica a tradução da data para Português do Brasil
                     data_crua = artigo.get('published date', 'Data não informada')
                     data_pub = traduzir_data_pt(data_crua)
                     
