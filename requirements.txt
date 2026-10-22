@@ -1,3 +1,2 @@
 gnews
-python-dateutil
 beautifulsoup4
