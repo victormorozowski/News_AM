@@ -26,7 +26,7 @@
                     </h1>
                     <p class="text-[11px] text-slate-400 flex items-center gap-2">
                         <span>Inteligência Operacional</span> • 
-                        <span id="relogio-local" class="text-slate-300 font-mono">Carregando hora e local...</span>
+                        <span id="relogio-local" class="text-slate-300 font-mono">Carregando data e local...</span>
                     </p>
                 </div>
             </div>
@@ -110,20 +110,14 @@
         let temaSelecionado = 'TODOS';
         let termoBusca = '';
 
-        // Relógio e Localização local do usuário
+        // Relógio e Localização local ajustados estritamente para PT-BR
         function iniciarRelogioELocalizacao() {
             function atualizar() {
                 const agora = new Date();
-                const dataFormatada = agora.toLocaleDateString('pt-BR');
-                const horaFormatada = agora.toLocaleTimeString('pt-BR');
+                const dataFormatada = agora.toLocaleDateString('pt-BR', { timeZone: 'America/Manaus' });
+                const horaFormatada = agora.toLocaleTimeString('pt-BR', { timeZone: 'America/Manaus' });
                 
-                // Obtém fuso ou timezone aproximado do navegador
-                let tz = 'Brasil';
-                try {
-                    tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'Brasil';
-                } catch(e) {}
-
-                document.getElementById('relogio-local').innerText = `${dataFormatada} • ${horaFormatada} (${tz})`;
+                document.getElementById('relogio-local').innerText = `${dataFormatada} • ${horaFormatada} (Manaus, AM)`;
             }
             atualizar();
             setInterval(atualizar, 1000);
@@ -157,7 +151,7 @@
             }
         }
 
-        // Calcula dinamicamente o termômetro de volume baseado no histórico (aprende o que é muito ou pouco)
+        // Termômetro de volume com termos totalmente em português acentuado
         function atualizarTermometroFluxo() {
             let totalNoticiasHoje = 0;
             
@@ -167,7 +161,6 @@
                 }
             }
 
-            // Calcula a média histórica de notícias por dia para calibrar o termômetro inteligentemente
             let somaHistorica = 0;
             let diasContados = 0;
             for (let [data, relatorio] of Object.entries(historicoGeral)) {
@@ -180,14 +173,13 @@
             }
 
             let mediaHistorica = diasContados > 0 ? somaHistorica / diasContados : 20;
-            if (mediaHistorica < 5) mediaHistorica = 20; // Valor base padrão de segurança
+            if (mediaHistorica < 5) mediaHistorica = 20;
 
-            // Compara o dia de hoje com a média histórica para gerar a porcentagem (0% a 100%+)
             let razao = totalNoticiasHoje / (mediaHistorica * 1.5);
             let porcentagem = Math.min(Math.max(razao * 100, 10), 100);
 
             let corBarra = 'bg-emerald-500';
-            let textoStatus = 'Baixo / Normal';
+            let textoStatus = 'Calmo / Normal';
 
             if (porcentagem > 75) {
                 corBarra = 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]';
@@ -197,7 +189,7 @@
                 textoStatus = `Fluxo Moderado (${totalNoticiasHoje} ocorrências)`;
             } else {
                 corBarra = 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]';
-                textoStatus = `Fluxo Calmo (${totalNoticiasHoje} ocorrências)`;
+                textoStatus = `Fluxo Reduzido (${totalNoticiasHoje} ocorrências)`;
             }
 
             document.getElementById('texto-status-fluxo').innerText = textoStatus;
