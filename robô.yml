@@ -33,5 +33,5 @@ jobs:
     - name: Salvar as notícias atualizadas no repositório
       uses: stefanzweifel/git-auto-commit-action@v5
       with:
-        commit_message: "Atualização automática a cada 30 minutos"
-        file_pattern: noticias_atualizadas.json
+        commit_message: "Atualização automática de notícias e histórico"
+        file_pattern: "*.json"
