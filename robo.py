@@ -1,9 +1,10 @@
 from datetime import datetime
 import json
 import os
+from dateutil import parser
 from gnews import GNews
 
-# Inicializa o buscador do Google News (focado no Brasil e em Português)
+# Inicializa o buscador do Google News
 google_news = GNews(language='pt', country='BR', period='1d', max_results=10)
 
 TEMAS_BUSCA = [
@@ -28,13 +29,27 @@ TEMAS_BUSCA = [
 ]
 
 
+def extrair_data_datetime(data_str):
+  """Converte qualquer formato de data do Google News em um objeto datetime
+
+  para ordenação precisa. Se falhar, retorna uma data muito antiga.
+  """
+  if not data_str:
+    return datetime.min
+  try:
+    # Usa o parser inteligente da biblioteca dateutil para ler strings de data variadas
+    return parser.parse(data_str, fuzzy=True)
+  except:
+    return datetime.min
+
+
 def buscar_noticias():
   data_execucao = datetime.now().strftime('%d/%m/%Y %H:%M')
   data_hoje = datetime.now().strftime('%Y-%m-%d')
 
   print(f'Iniciando varredura de notícias - {data_execucao}\n' + '=' * 50)
 
-  # Carrega dados anteriores do dia (se já existirem) para acumular sem perder
+  # Carrega dados anteriores do dia para acumular
   dados_existentes_hoje = {}
   if os.path.exists('noticias_atualizadas.json'):
     try:
@@ -44,8 +59,6 @@ def buscar_noticias():
       dados_existentes_hoje = {}
 
   links_processados = set()
-
-  # Mapeia links que já estavam salvos hoje para evitar duplicatas nas execuções das 2h em 2h
   for tema, noticias in dados_existentes_hoje.items():
     if isinstance(noticias, list):
       for n in noticias:
@@ -58,22 +71,21 @@ def buscar_noticias():
     print(f'Pesquisando: {tema}...')
     try:
       artigos = google_news.get_news(tema)
-      
-      # Pega notícias que já estavam salvas neste tema anteriormente hoje
-      noticias_tema_atual = []
-      if tema in dados_existentes_hoje and isinstance(dados_existentes_hoje[tema], list):
-        noticias_tema_atual = list(dados_existentes_hoje[tema])
 
-      novas_encontradas = 0
+      # Resgata notícias anteriores do tema hoje
+      noticias_tema = []
+      if tema in dados_existentes_hoje and isinstance(
+          dados_existentes_hoje[tema], list
+      ):
+        noticias_tema = list(dados_existentes_hoje[tema])
+
       if artigos:
         for artigo in artigos:
           link = artigo.get('url', '#')
 
           if link in links_processados:
             continue
-          
           links_processados.add(link)
-          novas_encontradas += 1
 
           titulo = artigo.get('title', 'Sem Título')
           fonte = artigo.get('publisher', {}).get('title', 'Fonte Desconhecida')
@@ -81,8 +93,7 @@ def buscar_noticias():
           descricao = artigo.get('description', '')
           resumo = descricao if descricao else f'Notícia referente a {tema}.'
 
-          # Adiciona no topo da lista do tema para as mais recentes ficarem em evidência
-          noticias_tema_atual.insert(0, {
+          noticias_tema.append({
               'titulo': titulo,
               'resumo': resumo,
               'data': data_pub,
@@ -90,12 +101,14 @@ def buscar_noticias():
               'link': link,
           })
 
-      if not noticias_tema_atual:
-        relatorio_geral[tema] = 'Sem atualizações relevantes nas últimas 24h.'
+      # ORDENAÇÃO CRONOLÓGICA RIGOROSA: Da mais nova para a mais antiga
+      if noticias_tema and isinstance(noticias_tema, list):
+        noticias_tema.sort(
+            key=lambda x: extrair_data_datetime(x.get('data')), reverse=True
+        )
+        relatorio_geral[tema] = noticias_tema
       else:
-        relatorio_geral[tema] = noticias_tema_atual
-
-      print(f'-> {novas_encontradas} novas notícias adicionadas para "{tema}".')
+        relatorio_geral[tema] = 'Sem atualizações relevantes nas últimas 24h.'
 
     except Exception as e:
       print(f'Erro ao buscar o tema "{tema}": {e}')
@@ -104,11 +117,11 @@ def buscar_noticias():
       else:
         relatorio_geral[tema] = 'Sem atualizações relevantes nas últimas 24h.'
 
-  # 1. Salva o arquivo padrão acumulado do dia
+  # Salva o arquivo atualizado
   with open('noticias_atualizadas.json', 'w', encoding='utf-8') as f:
     json.dump(relatorio_geral, f, ensure_ascii=False, indent=4)
 
-  # 2. Atualiza o banco de dados histórico geral
+  # Atualiza histórico geral
   historico = {}
   if os.path.exists('historico_geral.json'):
     try:
@@ -122,9 +135,7 @@ def buscar_noticias():
   with open('historico_geral.json', 'w', encoding='utf-8') as f:
     json.dump(historico, f, ensure_ascii=False, indent=4)
 
-  print(
-      '\nVarredura concluída e acumulada com sucesso!'
-  )
+  print('\nVarredura concluída e ordenada cronologicamente com sucesso!')
 
 
 if __name__ == '__main__':
